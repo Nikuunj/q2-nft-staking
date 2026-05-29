@@ -6,7 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-nft_staking = "EUCNgFruLnxqJkavBZyu33xYX2Vvbteaz4yQs4K4ZXiK"
+nft_staking = "GeUyDsJdYuBcCWqN89fXyPfUg8C3MvvWtS7fWCm71hrD"
+
+[registry]
+url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
@@ -14,5 +17,3 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "cargo test"
-
-[hooks]

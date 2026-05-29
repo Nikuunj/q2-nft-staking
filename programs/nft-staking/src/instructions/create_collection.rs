@@ -9,6 +9,7 @@ pub struct CreateCollection<'info> {
     #[account(mut)]
     pub collection: Signer<'info>,
 
+    /// CHECK: This is the Update authority Account
     #[account(
         seeds = [b"update_authority", collection.key().as_ref()],
         bump
@@ -17,6 +18,7 @@ pub struct CreateCollection<'info> {
 
     pub system_program: Program<'info, System>,
 
+    /// CHECK: This is the Metaplex Core program
     #[account(address = MPL_CORE_ID)]
     pub mpl_core_program: UncheckedAccount<'info>,
 }
@@ -28,9 +30,10 @@ impl<'info> CreateCollection<'info> {
         uri: String,
         bumps: CreateCollectionBumps,
     ) -> Result<()> {
+        let collection_key = self.collection.key();
         let signer_seed: &[&[&[u8]]] = &[&[
             b"create_collection",
-            self.collection.key().as_ref(),
+            collection_key.as_ref(),
             &[bumps.update_authority],
         ]];
 
