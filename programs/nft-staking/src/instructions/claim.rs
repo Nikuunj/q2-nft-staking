@@ -1,22 +1,13 @@
 use anchor_lang::{prelude::*, solana_program::clock::SECONDS_PER_DAY};
-use anchor_spl::{associated_token::AssociatedToken,  token_interface::{Mint, MintToChecked, TokenAccount, TokenInterface, mint_to_checked}}; 
-use mpl_core::{
-    accounts::{BaseAssetV1, BaseCollectionV1},
-    fetch_plugin,
-    instructions::{ UpdatePluginV1CpiBuilder},
-    types::{
-        Attribute, Attributes, FreezeDelegate, Plugin, PluginType, UpdateAuthority,
-    },
-    ID as MPL_CORE_ID,
-};
+use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint, TokenAccount, TokenInterface, mint_to_checked, MintToChecked}};
+use mpl_core::{ accounts::{BaseAssetV1, BaseCollectionV1}, fetch_plugin, types::{Attribute, Attributes, PluginType, UpdateAuthority}, ID as MPL_CORE_ID };
 
 use crate::{error::ErrorCode, state::Config};
 
 #[derive(Accounts)]
-pub struct UnStake<'info> {
+pub struct Claim<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-
     #[account(
         seeds = [b"config", collection.key().as_ref()],
         bump = config.bump
@@ -68,17 +59,17 @@ pub struct UnStake<'info> {
         address = MPL_CORE_ID
     )]
     pub mpl_core_program: UncheckedAccount<'info>,
+
 }
 
-impl<'info> UnStake<'info> {
-    pub fn unstake(&mut self, bumps: UnStakeBumps) -> Result<()> {
+impl<'info> Claim<'info> {
+    pub fn claim(&mut self) -> Result<()> {
         let attributes_fetched: Option<Attributes> = fetch_plugin::<BaseAssetV1, Attributes>(
             &self.asset.to_account_info(),
             PluginType::Attributes,
         )
         .ok()
         .map(|(_, attrs, _)| attrs);
-
 
         require!(attributes_fetched.is_some(), ErrorCode::CustomError);
 
@@ -109,42 +100,11 @@ impl<'info> UnStake<'info> {
         }
 
         let collection_key = self.collection.key();
-        let signer_seeds: &[&[&[u8]]] = &[&[
-            b"update_authority",
-            collection_key.as_ref(),
-            &[bumps.update_authority],
-        ]];
-
-        attributes_list.push(Attribute {
-            key: "staked".to_string(),
-            value: "false".to_string(),
-        });
 
         attributes_list.push(Attribute {
             key: "staked_at".to_string(),
-            value: "0".to_string(),
+            value: current_timestamp.to_string() 
         });
-
-
-        UpdatePluginV1CpiBuilder::new(&self.mpl_core_program.to_account_info())
-        .asset(&self.asset.to_account_info())
-        .collection(Some(&self.collection.to_account_info()))
-        .payer(&self.owner.to_account_info())
-        .authority(Some(&self.update_authority.to_account_info()))
-        .system_program(&self.system_program.to_account_info())
-        .plugin(Plugin::Attributes(Attributes { attribute_list: attributes_list }))
-        .invoke_signed(signer_seeds)?;
-
-
-        UpdatePluginV1CpiBuilder::new(&self.mpl_core_program.to_account_info())
-        .asset(&self.asset.to_account_info())
-        .collection(Some(&self.collection.to_account_info()))
-        .payer(&self.owner.to_account_info())
-        .authority(Some(&self.update_authority.to_account_info()))
-        .system_program(&self.system_program.to_account_info())
-        .plugin(Plugin::FreezeDelegate(FreezeDelegate { frozen: false }))
-        .invoke_signed(signer_seeds)?;
-
         let amount = (staked_time as u64)  
         .checked_mul(self.config.reward_bps as u64)
         .ok_or(ErrorCode::CustomError)? 
@@ -170,5 +130,6 @@ impl<'info> UnStake<'info> {
                 amount, 
             self.reward_mint.decimals
         )
+
     }
 }
