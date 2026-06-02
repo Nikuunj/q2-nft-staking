@@ -32,7 +32,7 @@ impl<'info> CreateCollection<'info> {
     ) -> Result<()> {
         let collection_key = self.collection.key();
         let signer_seed: &[&[&[u8]]] = &[&[
-            b"create_collection",
+            b"update_authority",
             collection_key.as_ref(),
             &[bumps.update_authority],
         ]];
